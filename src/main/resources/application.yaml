@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/polify
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    baseline-on-migrate: false
+
+polify:
+  jwt:
+    # Dev-only secret. In production read from env/secret manager.
+    secret: dev-secret-change-me
+    issuer: polify
+    ttl-seconds: 86400
