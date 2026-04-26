@@ -19,3 +19,6 @@ polify:
     secret: dev-secret-change-me
     issuer: polify
     ttl-seconds: 86400
+
+  attempts:
+    ttl-seconds: 14400

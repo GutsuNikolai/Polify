@@ -24,19 +24,28 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AttemptService {
     private final JdbcTemplate jdbcTemplate;
+    private final AttemptStateGuard stateGuard;
 
-    public AttemptService(JdbcTemplate jdbcTemplate) {
+    public AttemptService(JdbcTemplate jdbcTemplate, AttemptStateGuard stateGuard) {
         this.jdbcTemplate = jdbcTemplate;
+        this.stateGuard = stateGuard;
     }
 
     @Transactional
     public long startAttempt(long userId, long surveyId) {
-        Integer exists = jdbcTemplate.queryForObject(
-            "select 1 from surveys where id = ?",
+        // Expire any old in-progress attempt(s) before checking new start.
+        stateGuard.expireAllForUser(userId);
+
+        if (stateGuard.hasActiveInProgress(userId)) {
+            throw new AttemptNotAllowedException("You already have an in-progress attempt. Finish it or let it expire.");
+        }
+
+        Integer cnt = jdbcTemplate.queryForObject(
+            "select count(*) from surveys where id = ?",
             Integer.class,
             surveyId
         );
-        if (exists == null) {
+        if (cnt == null || cnt == 0) {
             throw new AttemptSurveyNotFoundException(surveyId);
         }
 
@@ -64,7 +73,7 @@ public class AttemptService {
 
     @Transactional
     public void submitAnswer(long userId, long attemptId, SubmitAnswerRequest request) {
-        AttemptRow attempt = loadAttemptForUpdate(userId, attemptId);
+        AttemptRow attempt = toAttemptRow(stateGuard.loadForUpdateAndGuard(userId, attemptId));
         if (!"IN_PROGRESS".equals(attempt.status())) {
             throw statusNotAllowed(attempt.status());
         }
@@ -88,7 +97,7 @@ public class AttemptService {
 
     @Transactional
     public void completeAttempt(long userId, long attemptId) {
-        AttemptRow attempt = loadAttemptForUpdate(userId, attemptId);
+        AttemptRow attempt = toAttemptRow(stateGuard.loadForUpdateAndGuard(userId, attemptId));
         if (!"IN_PROGRESS".equals(attempt.status())) {
             throw statusNotAllowed(attempt.status());
         }
@@ -124,9 +133,10 @@ public class AttemptService {
         }
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AttemptDetailsResponse getAttempt(long userId, long attemptId) {
-        AttemptRow attempt = loadAttempt(userId, attemptId);
+        // Guard also for reads: if expired, flip to ABANDONED before returning status.
+        AttemptRow attempt = toAttemptRow(stateGuard.loadForUpdateAndGuard(userId, attemptId));
         List<AttemptDetailsResponse.AnswerDto> answers = loadAnswers(attemptId);
         Long nextQuestionId = findNextQuestionId(attemptId, attempt.surveyId());
         return new AttemptDetailsResponse(
@@ -194,8 +204,11 @@ public class AttemptService {
             .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ActiveAttemptResponse findActiveAttempt(long userId, long surveyId) {
+        // Ensure expired attempts don't appear as active.
+        stateGuard.expireAllForUser(userId);
+
         List<ActiveAttemptResponse> rows = jdbcTemplate.query("""
             select id, survey_id, status
             from attempts
@@ -216,51 +229,15 @@ public class AttemptService {
         return rows.isEmpty() ? null : rows.get(0);
     }
 
-    private AttemptRow loadAttemptForUpdate(long userId, long attemptId) {
-        List<AttemptRow> rows = jdbcTemplate.query("""
-            select id, survey_id, user_id, status
-            from attempts
-            where id = ? and user_id = ?
-            for update
-            """,
-            (rs, rn) -> new AttemptRow(
-                rs.getLong("id"),
-                rs.getLong("survey_id"),
-                rs.getLong("user_id"),
-                rs.getString("status"),
-                null,
-                null
-            ),
-            attemptId,
-            userId
+    private static AttemptRow toAttemptRow(AttemptStateGuard.AttemptRow row) {
+        return new AttemptRow(
+            row.attemptId(),
+            row.surveyId(),
+            row.userId(),
+            row.status(),
+            row.startedAt(),
+            row.completedAt()
         );
-        if (rows.isEmpty()) {
-            throw new AttemptNotFoundException(attemptId);
-        }
-        return rows.get(0);
-    }
-
-    private AttemptRow loadAttempt(long userId, long attemptId) {
-        List<AttemptRow> rows = jdbcTemplate.query("""
-            select id, survey_id, user_id, status, started_at, completed_at
-            from attempts
-            where id = ? and user_id = ?
-            """,
-            (rs, rn) -> new AttemptRow(
-                rs.getLong("id"),
-                rs.getLong("survey_id"),
-                rs.getLong("user_id"),
-                rs.getString("status"),
-                toInstant(rs.getTimestamp("started_at")),
-                toInstant(rs.getTimestamp("completed_at"))
-            ),
-            attemptId,
-            userId
-        );
-        if (rows.isEmpty()) {
-            throw new AttemptNotFoundException(attemptId);
-        }
-        return rows.get(0);
     }
 
     private QuestionRow loadQuestion(long surveyId, long questionId) {
@@ -546,13 +523,13 @@ public class AttemptService {
     }
 
     private void ensureOptionBelongsToQuestion(long questionId, long optionId) {
-        Integer ok = jdbcTemplate.queryForObject(
-            "select 1 from question_options where id = ? and question_id = ? and is_active = true",
+        Integer cnt = jdbcTemplate.queryForObject(
+            "select count(*) from question_options where id = ? and question_id = ? and is_active = true",
             Integer.class,
             optionId,
             questionId
         );
-        if (ok == null) {
+        if (cnt == null || cnt == 0) {
             throw new AttemptValidationException("Option does not belong to question: " + optionId);
         }
     }
