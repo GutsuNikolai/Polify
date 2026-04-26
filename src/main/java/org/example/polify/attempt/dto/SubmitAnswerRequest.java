@@ -12,6 +12,10 @@ public class SubmitAnswerRequest {
     @Size(max = 500)
     private String textValue;
 
+    // For RADIO/SELECT
+    private Long optionId;
+
+    // For CHECKBOX
     private List<Long> optionIds;
 
     private List<PriorityItem> priority;
@@ -30,6 +34,14 @@ public class SubmitAnswerRequest {
 
     public void setTextValue(String textValue) {
         this.textValue = textValue;
+    }
+
+    public Long getOptionId() {
+        return optionId;
+    }
+
+    public void setOptionId(Long optionId) {
+        this.optionId = optionId;
     }
 
     public List<Long> getOptionIds() {
@@ -72,4 +84,3 @@ public class SubmitAnswerRequest {
         }
     }
 }
-

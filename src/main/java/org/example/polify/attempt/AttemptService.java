@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.example.polify.attempt.dto.SubmitAnswerRequest;
 import org.example.polify.attempt.dto.AttemptDetailsResponse;
+import org.example.polify.attempt.dto.ActiveAttemptResponse;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -65,7 +66,7 @@ public class AttemptService {
     public void submitAnswer(long userId, long attemptId, SubmitAnswerRequest request) {
         AttemptRow attempt = loadAttemptForUpdate(userId, attemptId);
         if (!"IN_PROGRESS".equals(attempt.status())) {
-            throw new AttemptNotAllowedException("Attempt is not in progress");
+            throw statusNotAllowed(attempt.status());
         }
 
         QuestionRow question = loadQuestion(attempt.surveyId(), request.getQuestionId());
@@ -75,9 +76,12 @@ public class AttemptService {
 
         switch (question.type()) {
             case "TEXT" -> submitText(answerId, request.getTextValue(), question.required());
-            case "RADIO", "SELECT" -> submitSingleOption(answerId, question.questionId(), request.getOptionIds(), question.required());
-            case "CHECKBOX" -> submitMultiOption(answerId, question.questionId(), request.getOptionIds(), question.required());
-            case "PRIORITY" -> submitPriority(answerId, question.questionId(), request.getPriority(), question.required());
+            case "RADIO", "SELECT" -> submitSingleOption(answerId, question.questionId(), request.getOptionId(), request.getOptionIds(),
+                request.getTextValue(), request.getPriority(), question.required());
+            case "CHECKBOX" -> submitMultiOption(answerId, question.questionId(), request.getOptionIds(), request.getOptionId(),
+                request.getTextValue(), request.getPriority(), question.required());
+            case "PRIORITY" -> submitPriority(answerId, question.questionId(), request.getPriority(), request.getOptionId(),
+                request.getOptionIds(), request.getTextValue(), question.required());
             default -> throw new IllegalStateException("Unsupported question type: " + question.type());
         }
     }
@@ -86,7 +90,7 @@ public class AttemptService {
     public void completeAttempt(long userId, long attemptId) {
         AttemptRow attempt = loadAttemptForUpdate(userId, attemptId);
         if (!"IN_PROGRESS".equals(attempt.status())) {
-            throw new AttemptNotAllowedException("Attempt is not in progress");
+            throw statusNotAllowed(attempt.status());
         }
 
         int missingRequired = countMissingRequiredDetails(attemptId, attempt.surveyId());
@@ -104,20 +108,20 @@ public class AttemptService {
             throw new AttemptNotAllowedException("Attempt cannot be completed");
         }
 
-        // Create ledger entry (1:1 guarded by UNIQUE attempt_id).
-        Integer reward = jdbcTemplate.queryForObject(
-            "select reward_amount_bani from surveys where id = ?",
-            Integer.class,
-            attempt.surveyId()
-        );
-        int amount = reward == null ? 0 : reward;
-
-        jdbcTemplate.update(
-            "insert into ledger_entries (attempt_id, user_id, amount_bani, currency, status, created_at) values (?,?,?, 'MDL', 'CREATED', now())",
+        // Create ledger entry (atomic: amount comes from surveys in the same statement).
+        int inserted = jdbcTemplate.update("""
+            insert into ledger_entries (attempt_id, user_id, amount_bani, currency, status, created_at)
+            select ?, ?, s.reward_amount_bani, 'MDL', 'CREATED', now()
+            from surveys s
+            where s.id = ?
+            """,
             attemptId,
             userId,
-            amount
+            attempt.surveyId()
         );
+        if (inserted != 1) {
+            throw new IllegalStateException("Failed to create ledger entry");
+        }
     }
 
     @Transactional(readOnly = true)
@@ -188,6 +192,28 @@ public class AttemptService {
                 null
             ))
             .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ActiveAttemptResponse findActiveAttempt(long userId, long surveyId) {
+        List<ActiveAttemptResponse> rows = jdbcTemplate.query("""
+            select id, survey_id, status
+            from attempts
+            where user_id = ?
+              and survey_id = ?
+              and status = 'IN_PROGRESS'
+            order by started_at desc
+            limit 1
+            """,
+            (rs, rn) -> new ActiveAttemptResponse(
+                rs.getLong("id"),
+                rs.getLong("survey_id"),
+                rs.getString("status")
+            ),
+            userId,
+            surveyId
+        );
+        return rows.isEmpty() ? null : rows.get(0);
     }
 
     private AttemptRow loadAttemptForUpdate(long userId, long attemptId) {
@@ -336,11 +362,26 @@ public class AttemptService {
         jdbcTemplate.update("delete from answer_priority where answer_id = ?", answerId);
     }
 
-    private void submitSingleOption(long answerId, long questionId, List<Long> optionIds, boolean required) {
-        Long optionId = null;
-        if (optionIds != null && !optionIds.isEmpty()) {
-            optionId = optionIds.get(0);
+    private void submitSingleOption(
+        long answerId,
+        long questionId,
+        Long optionId,
+        List<Long> optionIds,
+        String textValue,
+        List<SubmitAnswerRequest.PriorityItem> priority,
+        boolean required
+    ) {
+        // Strict payload: only optionId allowed.
+        if (textValue != null) {
+            throw new AttemptValidationException("TEXT value is not allowed for this question type");
         }
+        if (priority != null && !priority.isEmpty()) {
+            throw new AttemptValidationException("PRIORITY payload is not allowed for this question type");
+        }
+        if (optionIds != null && !optionIds.isEmpty()) {
+            throw new AttemptValidationException("Use optionId (single) for RADIO/SELECT");
+        }
+
         if (optionId == null) {
             if (required) {
                 throw new AttemptValidationException("Option answer is required");
@@ -365,7 +406,26 @@ public class AttemptService {
         jdbcTemplate.update("delete from answer_priority where answer_id = ?", answerId);
     }
 
-    private void submitMultiOption(long answerId, long questionId, List<Long> optionIds, boolean required) {
+    private void submitMultiOption(
+        long answerId,
+        long questionId,
+        List<Long> optionIds,
+        Long optionId,
+        String textValue,
+        List<SubmitAnswerRequest.PriorityItem> priority,
+        boolean required
+    ) {
+        // Strict payload: only optionIds allowed.
+        if (textValue != null) {
+            throw new AttemptValidationException("TEXT value is not allowed for this question type");
+        }
+        if (priority != null && !priority.isEmpty()) {
+            throw new AttemptValidationException("PRIORITY payload is not allowed for this question type");
+        }
+        if (optionId != null) {
+            throw new AttemptValidationException("Use optionIds (list) for CHECKBOX");
+        }
+
         List<Long> ids = optionIds == null ? List.of() : optionIds.stream().filter(Objects::nonNull).distinct().toList();
         if (ids.isEmpty()) {
             if (required) {
@@ -377,17 +437,17 @@ public class AttemptService {
             return;
         }
 
-        for (Long optionId : ids) {
-            ensureOptionBelongsToQuestion(questionId, optionId);
+        for (Long id : ids) {
+            ensureOptionBelongsToQuestion(questionId, id);
         }
 
         jdbcTemplate.update("delete from answer_options where answer_id = ?", answerId);
-        for (Long optionId : ids) {
+        for (Long id : ids) {
             jdbcTemplate.update(
                 "insert into answer_options (answer_id, question_id, option_id) values (?,?,?)",
                 answerId,
                 questionId,
-                optionId
+                id
             );
         }
 
@@ -395,7 +455,26 @@ public class AttemptService {
         jdbcTemplate.update("delete from answer_priority where answer_id = ?", answerId);
     }
 
-    private void submitPriority(long answerId, long questionId, List<SubmitAnswerRequest.PriorityItem> priority, boolean required) {
+    private void submitPriority(
+        long answerId,
+        long questionId,
+        List<SubmitAnswerRequest.PriorityItem> priority,
+        Long optionId,
+        List<Long> optionIds,
+        String textValue,
+        boolean required
+    ) {
+        // Strict payload: only priority allowed.
+        if (textValue != null) {
+            throw new AttemptValidationException("TEXT value is not allowed for this question type");
+        }
+        if (optionId != null) {
+            throw new AttemptValidationException("optionId is not allowed for PRIORITY");
+        }
+        if (optionIds != null && !optionIds.isEmpty()) {
+            throw new AttemptValidationException("optionIds is not allowed for PRIORITY");
+        }
+
         List<SubmitAnswerRequest.PriorityItem> items = priority == null ? List.of() : priority;
         if (items.isEmpty()) {
             if (required) {
@@ -407,19 +486,38 @@ public class AttemptService {
             return;
         }
 
-        Set<Long> optionIds = new HashSet<>();
+        Set<Long> priorityOptionIds = new HashSet<>();
         Set<Integer> ranks = new HashSet<>();
         for (SubmitAnswerRequest.PriorityItem item : items) {
             if (item.getOptionId() == null || item.getRank() == null || item.getRank() <= 0) {
                 throw new AttemptValidationException("Priority items must have optionId and positive rank");
             }
-            if (!optionIds.add(item.getOptionId())) {
+            if (!priorityOptionIds.add(item.getOptionId())) {
                 throw new AttemptValidationException("Duplicate optionId in priority");
             }
             if (!ranks.add(item.getRank())) {
                 throw new AttemptValidationException("Duplicate rank in priority");
             }
             ensureOptionBelongsToQuestion(questionId, item.getOptionId());
+        }
+
+        // For required PRIORITY: must rank ALL active options, with ranks 1..N.
+        if (required) {
+            List<Long> activeOptions = jdbcTemplate.query(
+                "select id from question_options where question_id = ? and is_active = true order by position asc",
+                (rs, rn) -> rs.getLong(1),
+                questionId
+            );
+            Set<Long> activeSet = new HashSet<>(activeOptions);
+            if (priorityOptionIds.size() != activeSet.size() || !activeSet.equals(priorityOptionIds)) {
+                throw new AttemptValidationException("You must rank all options for this question");
+            }
+            int n = activeSet.size();
+            for (int r = 1; r <= n; r++) {
+                if (!ranks.contains(r)) {
+                    throw new AttemptValidationException("Priority ranks must be 1.." + n);
+                }
+            }
         }
 
         jdbcTemplate.update("delete from answer_priority where answer_id = ?", answerId);
@@ -435,6 +533,16 @@ public class AttemptService {
 
         jdbcTemplate.update("delete from answer_text where answer_id = ?", answerId);
         jdbcTemplate.update("delete from answer_options where answer_id = ?", answerId);
+    }
+
+    private AttemptNotAllowedException statusNotAllowed(String status) {
+        if ("COMPLETED".equals(status)) {
+            return new AttemptNotAllowedException("You already completed this survey");
+        }
+        if ("ABANDONED".equals(status)) {
+            return new AttemptNotAllowedException("Attempt expired. Start again.");
+        }
+        return new AttemptNotAllowedException("Attempt is not in progress");
     }
 
     private void ensureOptionBelongsToQuestion(long questionId, long optionId) {
@@ -464,7 +572,16 @@ public class AttemptService {
                     and a.question_id = q.id
                     and length(btrim(t.value_text)) > 0
                 )
-                or q.type in ('RADIO','SELECT','CHECKBOX') and not exists (
+                or q.type in ('RADIO','SELECT') and not exists (
+                  select 1
+                  from answers a
+                  join answer_options ao on ao.answer_id = a.id
+                  where a.attempt_id = ?
+                    and a.question_id = q.id
+                  group by ao.answer_id
+                  having count(*) = 1
+                )
+                or q.type = 'CHECKBOX' and not exists (
                   select 1
                   from answers a
                   join answer_options ao on ao.answer_id = a.id
@@ -477,11 +594,21 @@ public class AttemptService {
                   join answer_priority ap on ap.answer_id = a.id
                   where a.attempt_id = ?
                     and a.question_id = q.id
+                  group by ap.answer_id
+                  having
+                    count(*) = (
+                      select count(*) from question_options qo
+                      where qo.question_id = q.id and qo.is_active = true
+                    )
+                    and count(distinct ap.rank) = count(*)
+                    and min(ap.rank) = 1
+                    and max(ap.rank) = count(*)
                 )
               )
             """,
             Integer.class,
             surveyId,
+            attemptId,
             attemptId,
             attemptId,
             attemptId

@@ -5,9 +5,11 @@ import java.util.List;
 import org.example.polify.attempt.dto.StartAttemptRequest;
 import org.example.polify.attempt.dto.StartAttemptResponse;
 import org.example.polify.attempt.dto.AttemptDetailsResponse;
+import org.example.polify.attempt.dto.ActiveAttemptResponse;
 import org.example.polify.attempt.dto.SubmitAnswerRequest;
 import org.example.polify.auth.PolifyPrincipal;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -70,5 +72,17 @@ public class AttemptController {
         @RequestParam(required = false) Long surveyId
     ) {
         return attemptService.listAttempts(principal.userId(), surveyId);
+    }
+
+    @GetMapping("/active")
+    public ResponseEntity<ActiveAttemptResponse> active(
+        @AuthenticationPrincipal PolifyPrincipal principal,
+        @RequestParam long surveyId
+    ) {
+        ActiveAttemptResponse resp = attemptService.findActiveAttempt(principal.userId(), surveyId);
+        if (resp == null) {
+            return ResponseEntity.ok().body(null);
+        }
+        return ResponseEntity.ok(resp);
     }
 }
