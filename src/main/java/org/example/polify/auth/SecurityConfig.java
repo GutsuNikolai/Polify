@@ -1,5 +1,8 @@
 package org.example.polify.auth;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.polify.common.error.ApiAccessDeniedHandler;
+import org.example.polify.common.error.ApiAuthenticationEntryPoint;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,7 +16,11 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 @EnableConfigurationProperties(JwtProperties.class)
 public class SecurityConfig {
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtProperties jwtProperties) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+        HttpSecurity http,
+        JwtProperties jwtProperties,
+        ObjectMapper objectMapper
+    ) throws Exception {
         JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtProperties);
 
         http
@@ -22,6 +29,10 @@ public class SecurityConfig {
             .formLogin(fl -> fl.disable())
             .httpBasic(hb -> hb.disable())
             .logout(lo -> lo.disable())
+            .exceptionHandling(eh -> eh
+                .authenticationEntryPoint(new ApiAuthenticationEntryPoint(objectMapper))
+                .accessDeniedHandler(new ApiAccessDeniedHandler(objectMapper))
+            )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(new AntPathRequestMatcher("/auth/**")).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/surveys/**")).permitAll()
