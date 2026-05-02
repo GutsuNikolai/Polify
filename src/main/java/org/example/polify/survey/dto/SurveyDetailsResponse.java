@@ -1,13 +1,21 @@
 package org.example.polify.survey.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
+@Schema(description = "Survey with full questions/options structure.")
 public class SurveyDetailsResponse {
+    @Schema(description = "Survey id.", example = "1")
     private final Long id;
+    @Schema(description = "Title.", example = "E2E All Types")
     private final String title;
+    @Schema(description = "Description.", example = "Survey containing all supported question types.")
     private final String description;
+    @Schema(description = "Reward amount in bani.", example = "300")
     private final int rewardAmountBani;
+    @Schema(description = "Target number of completions.", example = "10")
     private final int targetCompletions;
+    @Schema(description = "Ordered list of questions.")
     private final List<QuestionDto> questions;
 
     public SurveyDetailsResponse(
@@ -51,11 +59,17 @@ public class SurveyDetailsResponse {
     }
 
     public static class QuestionDto {
+        @Schema(description = "Question id.", example = "123")
         private final Long id;
+        @Schema(description = "Question type: TEXT | RADIO | CHECKBOX | SELECT | PRIORITY.", example = "RADIO")
         private final String type;
+        @Schema(description = "Question text.", example = "How many hours do you sleep on average?")
         private final String text;
+        @Schema(description = "Position within survey (1..N).", example = "2")
         private final int position;
+        @Schema(description = "Whether answering is required.", example = "true")
         private final boolean required;
+        @Schema(description = "Options for non-TEXT question types (may be empty for TEXT).")
         private final List<OptionDto> options;
 
         public QuestionDto(Long id, String type, String text, int position, boolean required, List<OptionDto> options) {
@@ -93,10 +107,15 @@ public class SurveyDetailsResponse {
     }
 
     public static class OptionDto {
+        @Schema(description = "Option id.", example = "10")
         private final Long id;
+        @Schema(description = "Option label.", example = "6-7")
         private final String label;
+        @Schema(description = "Stable option value.", example = "6_7")
         private final String value;
+        @Schema(description = "Position within options list.", example = "2")
         private final int position;
+        @Schema(description = "Optional media URL.", example = "https://cdn.example.com/img.png", nullable = true)
         private final String mediaUrl;
 
         public OptionDto(Long id, String label, String value, int position, String mediaUrl) {
@@ -128,4 +147,3 @@ public class SurveyDetailsResponse {
         }
     }
 }
-

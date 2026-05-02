@@ -20,6 +20,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.example.polify.common.log.AuditLogger;
 
 @Service
 public class AttemptService {
@@ -64,6 +65,7 @@ public class AttemptService {
             if (id == null) {
                 throw new IllegalStateException("Failed to create attempt");
             }
+            AuditLogger.info("ATTEMPT_STARTED", "Attempt started", userId, surveyId, id.longValue(), null, null, "IN_PROGRESS");
             return id.longValue();
         } catch (DuplicateKeyException ex) {
             // Uniqueness enforced by partial indexes: already have IN_PROGRESS or already COMPLETED.
@@ -131,6 +133,14 @@ public class AttemptService {
         if (inserted != 1) {
             throw new IllegalStateException("Failed to create ledger entry");
         }
+
+        Integer amount = jdbcTemplate.queryForObject(
+            "select amount_bani from ledger_entries where attempt_id = ?",
+            Integer.class,
+            attemptId
+        );
+        AuditLogger.info("ATTEMPT_COMPLETED", "Attempt completed", userId, attempt.surveyId(), attemptId, null, amount, "COMPLETED");
+        AuditLogger.info("LEDGER_CREATED", "Ledger entry created", userId, attempt.surveyId(), attemptId, null, amount, "CREATED");
     }
 
     @Transactional

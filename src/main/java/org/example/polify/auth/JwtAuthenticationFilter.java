@@ -16,6 +16,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.slf4j.MDC;
 
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JWTVerifier verifier;
@@ -54,6 +55,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 new UsernamePasswordAuthenticationToken(principal, null, Collections.emptyList());
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
+            MDC.put("userId", String.valueOf(userId));
         } catch (JWTVerificationException | IllegalArgumentException ex) {
             // Invalid token: treat as unauthenticated.
             SecurityContextHolder.clearContext();

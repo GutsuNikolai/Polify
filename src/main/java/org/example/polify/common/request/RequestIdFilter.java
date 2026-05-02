@@ -34,8 +34,14 @@ public class RequestIdFilter extends OncePerRequestFilter {
         try {
             filterChain.doFilter(request, response);
         } finally {
+            // Also clear userId/event fields if any were set.
             MDC.remove(MDC_KEY);
+            MDC.remove("userId");
+            MDC.remove("event");
+            MDC.remove("status");
+            MDC.remove("errorCode");
+            MDC.remove("exception");
+            MDC.remove("context");
         }
     }
 }
-

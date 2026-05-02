@@ -16,8 +16,11 @@ import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -85,6 +88,44 @@ public class GlobalExceptionHandler {
             HttpStatus.BAD_REQUEST,
             ErrorCode.VALIDATION_FAILED,
             "Missing required parameter: " + ex.getParameterName(),
+            request,
+            List.of()
+        );
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public org.springframework.http.ResponseEntity<ApiError> handleTypeMismatch(
+        MethodArgumentTypeMismatchException ex,
+        HttpServletRequest request
+    ) {
+        String name = ex.getName();
+        String message = "Invalid value for parameter: " + (name == null ? "unknown" : name);
+        return buildError(HttpStatus.BAD_REQUEST, ErrorCode.TYPE_MISMATCH, message, request, List.of());
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public org.springframework.http.ResponseEntity<ApiError> handleMethodNotSupported(
+        HttpRequestMethodNotSupportedException ex,
+        HttpServletRequest request
+    ) {
+        return buildError(
+            HttpStatus.METHOD_NOT_ALLOWED,
+            ErrorCode.METHOD_NOT_ALLOWED,
+            "Method not allowed",
+            request,
+            List.of()
+        );
+    }
+
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public org.springframework.http.ResponseEntity<ApiError> handleNoHandlerFound(
+        NoHandlerFoundException ex,
+        HttpServletRequest request
+    ) {
+        return buildError(
+            HttpStatus.NOT_FOUND,
+            ErrorCode.ENDPOINT_NOT_FOUND,
+            "Endpoint not found",
             request,
             List.of()
         );
@@ -211,4 +252,3 @@ public class GlobalExceptionHandler {
         return new FieldErrorResponse(fe.getField(), fe.getDefaultMessage());
     }
 }
-

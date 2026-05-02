@@ -7,6 +7,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.example.polify.common.log.AuditLogger;
 
 @Service
 @EnableConfigurationProperties(AttemptProperties.class)
@@ -22,7 +23,7 @@ public class AttemptStateGuard {
     @Transactional
     public AttemptRow loadForUpdateAndGuard(long userId, long attemptId) {
         // Expire if needed (use DB clock).
-        jdbcTemplate.update("""
+        int expired = jdbcTemplate.update("""
             update attempts
             set status = 'ABANDONED'
             where id = ?
@@ -34,6 +35,10 @@ public class AttemptStateGuard {
             userId,
             properties.getTtlSeconds()
         );
+        if (expired > 0) {
+            // surveyId unknown here without extra query; keep minimal.
+            AuditLogger.info("ATTEMPT_ABANDONED", "Attempt expired and was abandoned", userId, null, attemptId, null, null, "ABANDONED");
+        }
 
         List<AttemptRow> rows = jdbcTemplate.query("""
             select id, survey_id, user_id, status, started_at, completed_at
@@ -60,7 +65,7 @@ public class AttemptStateGuard {
 
     @Transactional
     public void expireAllForUser(long userId) {
-        jdbcTemplate.update("""
+        int expired = jdbcTemplate.update("""
             update attempts
             set status = 'ABANDONED'
             where user_id = ?
@@ -70,6 +75,9 @@ public class AttemptStateGuard {
             userId,
             properties.getTtlSeconds()
         );
+        if (expired > 0) {
+            AuditLogger.info("ATTEMPTS_ABANDONED", "Expired attempts abandoned", userId, null, null, null, null, "ABANDONED");
+        }
     }
 
     @Transactional(readOnly = true)

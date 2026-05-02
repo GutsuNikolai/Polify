@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.example.polify.common.log.SecurityLogger;
 
 public class ApiAccessDeniedHandler implements AccessDeniedHandler {
     private final ObjectMapper objectMapper;
@@ -25,6 +26,7 @@ public class ApiAccessDeniedHandler implements AccessDeniedHandler {
         HttpServletResponse response,
         AccessDeniedException accessDeniedException
     ) throws IOException {
+        SecurityLogger.warn("AUTH_403", "Forbidden request", null, null, "FORBIDDEN");
         HttpStatus status = HttpStatus.FORBIDDEN;
         ApiError body = new ApiError(
             Instant.now().toString(),
@@ -42,4 +44,3 @@ public class ApiAccessDeniedHandler implements AccessDeniedHandler {
         objectMapper.writeValue(response.getOutputStream(), body);
     }
 }
-

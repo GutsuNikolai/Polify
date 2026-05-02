@@ -4,6 +4,9 @@ public enum ErrorCode {
     INTERNAL_ERROR,
     VALIDATION_FAILED,
     MALFORMED_JSON,
+    TYPE_MISMATCH,
+    ENDPOINT_NOT_FOUND,
+    METHOD_NOT_ALLOWED,
     UNAUTHORIZED,
     FORBIDDEN,
 
@@ -18,4 +21,3 @@ public enum ErrorCode {
     ATTEMPT_NOT_ALLOWED,
     ATTEMPT_VALIDATION
 }
-

@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.example.polify.common.log.SecurityLogger;
 
 public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {
     private final ObjectMapper objectMapper;
@@ -25,6 +26,7 @@ public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {
         HttpServletResponse response,
         AuthenticationException authException
     ) throws IOException {
+        SecurityLogger.warn("AUTH_401", "Unauthorized request", null, null, "UNAUTHORIZED");
         HttpStatus status = HttpStatus.UNAUTHORIZED;
         ApiError body = new ApiError(
             Instant.now().toString(),
@@ -42,4 +44,3 @@ public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {
         objectMapper.writeValue(response.getOutputStream(), body);
     }
 }
-

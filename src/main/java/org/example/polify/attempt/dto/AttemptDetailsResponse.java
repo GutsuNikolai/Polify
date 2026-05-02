@@ -1,15 +1,24 @@
 package org.example.polify.attempt.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.List;
 
+@Schema(description = "Attempt details including saved answers and nextQuestionId for resume UX.")
 public class AttemptDetailsResponse {
+    @Schema(description = "Attempt id.", example = "5")
     private final long attemptId;
+    @Schema(description = "Survey id.", example = "1")
     private final long surveyId;
+    @Schema(description = "Attempt status: IN_PROGRESS | COMPLETED | ABANDONED.", example = "IN_PROGRESS")
     private final String status;
+    @Schema(description = "Attempt started at (UTC).", example = "2026-05-03T10:00:00Z")
     private final Instant startedAt;
+    @Schema(description = "Attempt completed at (UTC). Null until completed.", nullable = true)
     private final Instant completedAt;
+    @Schema(description = "Saved answers (may be empty in list view).")
     private final List<AnswerDto> answers;
+    @Schema(description = "First required question not answered yet (by position). Null if all required are answered.", nullable = true)
     private final Long nextQuestionId;
 
     public AttemptDetailsResponse(
@@ -59,11 +68,17 @@ public class AttemptDetailsResponse {
     }
 
     public static class AnswerDto {
+        @Schema(description = "Answer header id.", example = "100")
         private final long answerId;
+        @Schema(description = "Question id.", example = "101")
         private final long questionId;
+        @Schema(description = "When the answer was last submitted (UTC).", example = "2026-05-03T10:05:00Z")
         private final Instant answeredAt;
+        @Schema(description = "TEXT value (if applicable).", nullable = true)
         private final String textValue;
+        @Schema(description = "Chosen option ids (RADIO/SELECT/CHECKBOX).", nullable = true)
         private final List<Long> optionIds;
+        @Schema(description = "Priority items (PRIORITY).", nullable = true)
         private final List<PriorityDto> priority;
 
         public AnswerDto(
@@ -108,7 +123,9 @@ public class AttemptDetailsResponse {
     }
 
     public static class PriorityDto {
+        @Schema(description = "Option id.", example = "1001")
         private final long optionId;
+        @Schema(description = "Rank starting at 1.", example = "1")
         private final int rank;
 
         public PriorityDto(long optionId, int rank) {
@@ -125,4 +142,3 @@ public class AttemptDetailsResponse {
         }
     }
 }
-

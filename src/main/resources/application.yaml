@@ -13,6 +13,13 @@ spring:
     validate-on-migrate: true
     baseline-on-migrate: false
 
+  # Ensure unknown routes are surfaced as exceptions so we can return ApiError (instead of the default /error format).
+  mvc:
+    throw-exception-if-no-handler-found: true
+  web:
+    resources:
+      add-mappings: false
+
 polify:
   jwt:
     # Dev-only secret. In production read from env/secret manager.
