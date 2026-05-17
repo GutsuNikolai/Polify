@@ -1,0 +1,31 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/polify
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    baseline-on-migrate: false
+
+  # Ensure unknown routes are surfaced as exceptions so we can return ApiError (instead of the default /error format).
+  mvc:
+    throw-exception-if-no-handler-found: true
+  web:
+    resources:
+      add-mappings: false
+
+polify:
+  jwt:
+    # Dev-only secret. In production read from env/secret manager.
+    secret: dev-secret-change-me
+    issuer: polify
+    ttl-seconds: 86400
+
+  attempts:
+    ttl-seconds: 14400
