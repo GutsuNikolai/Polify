@@ -12,6 +12,8 @@ import { ProfileScreen } from "../screens/ProfileScreen";
 import { useAuthStore } from "../store/authStore";
 import { ActivityIndicator, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { ManageSurveysScreen, ManageStackParamList } from "../screens/manage/ManageSurveysScreen";
+import { CreateSurveyScreen } from "../screens/manage/CreateSurveyScreen";
 
 export type AppStackParamList = {
   Surveys: undefined;
@@ -22,7 +24,8 @@ export type AppStackParamList = {
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const SurveysStack = createNativeStackNavigator<AppStackParamList>();
-const Tabs = createBottomTabNavigator<{ SurveysTab: undefined; ProfileTab: undefined }>();
+const Tabs = createBottomTabNavigator<{ SurveysTab: undefined; ManageTab: undefined; ProfileTab: undefined }>();
+const ManageStack = createNativeStackNavigator<ManageStackParamList>();
 
 function SurveysStackNavigator() {
   return (
@@ -40,6 +43,19 @@ function SurveysStackNavigator() {
         options={{ title: "Completed", headerTintColor: "#E2E8F0", headerStyle: { backgroundColor: "#0B1220" } }}
       />
     </SurveysStack.Navigator>
+  );
+}
+
+function ManageStackNavigator() {
+  return (
+    <ManageStack.Navigator>
+      <ManageStack.Screen name="ManageHome" component={ManageSurveysScreen} options={{ headerShown: false }} />
+      <ManageStack.Screen
+        name="CreateSurvey"
+        component={CreateSurveyScreen}
+        options={{ title: "Create survey", headerTintColor: "#E2E8F0", headerStyle: { backgroundColor: "#0B1220" } }}
+      />
+    </ManageStack.Navigator>
   );
 }
 
@@ -64,12 +80,14 @@ export function AppNavigator() {
             tabBarActiveTintColor: "#93C5FD",
             tabBarInactiveTintColor: "#64748B",
             tabBarIcon: ({ color, size }) => {
-              const name = route.name === "SurveysTab" ? "list" : "person";
+              const name =
+                route.name === "SurveysTab" ? "list" : route.name === "ManageTab" ? "construct" : "person";
               return <Ionicons name={name} size={size} color={color} />;
             },
           })}
         >
           <Tabs.Screen name="SurveysTab" component={SurveysStackNavigator} options={{ title: "Surveys" }} />
+          <Tabs.Screen name="ManageTab" component={ManageStackNavigator} options={{ title: "Manage" }} />
           <Tabs.Screen name="ProfileTab" component={ProfileScreen} options={{ title: "Profile" }} />
         </Tabs.Navigator>
       ) : (

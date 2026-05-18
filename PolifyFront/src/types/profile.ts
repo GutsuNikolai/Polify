@@ -1,4 +1,5 @@
 export type Gender = "MALE" | "FEMALE" | null;
+export type Role = "USER" | "MODERATOR" | "ADMIN";
 
 export type UserProfileResponse = {
   id: number;
@@ -10,6 +11,7 @@ export type UserProfileResponse = {
   birthDate?: string | null; // YYYY-MM-DD
   country?: string | null;
   city?: string | null;
+  role: Role;
   verified: boolean;
   lastActiveAt: string;
   createdAt: string;
@@ -23,4 +25,3 @@ export type UpdateUserProfileRequest = {
   country?: string | null;
   city?: string | null;
 };
-

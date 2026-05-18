@@ -6,6 +6,7 @@ import org.example.polify.auth.dto.LoginRequest;
 import org.example.polify.auth.dto.RegisterRequest;
 import org.example.polify.user.UserEntity;
 import org.example.polify.user.UserRepository;
+import org.example.polify.user.Role;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,7 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setEmail(normalizeOptional(request.getEmail()));
         user.setPhoneNumber(request.getPhoneNumber());
+        user.setRole(Role.USER);
         user.setVerified(false);
         user.setLastActiveAt(now);
         user.setCreatedAt(now);

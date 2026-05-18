@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.time.LocalDate;
 import org.example.polify.user.Gender;
+import org.example.polify.user.Role;
 
 @Schema(description = "User profile data for the current authenticated user.")
 public record UserProfileResponse(
@@ -25,6 +26,8 @@ public record UserProfileResponse(
     String country,
     @Schema(description = "Optional city.", example = "Chisinau", nullable = true)
     String city,
+    @Schema(description = "User role.", example = "USER")
+    Role role,
     @Schema(description = "Whether user is verified.", example = "false")
     boolean verified,
     @Schema(description = "Last active timestamp.", example = "2026-05-05T10:00:00Z")
@@ -33,4 +36,3 @@ public record UserProfileResponse(
     Instant createdAt
 ) {
 }
-

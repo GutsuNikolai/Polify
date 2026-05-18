@@ -36,6 +36,10 @@ public class UserEntity {
     @Enumerated(EnumType.STRING)
     private Gender gender;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    private Role role;
+
     @Column(name = "birth_date")
     private LocalDate birthDate;
 
@@ -108,6 +112,14 @@ public class UserEntity {
         this.gender = gender;
     }
 
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
     public LocalDate getBirthDate() {
         return birthDate;
     }
@@ -156,4 +168,3 @@ public class UserEntity {
         this.createdAt = createdAt;
     }
 }
-

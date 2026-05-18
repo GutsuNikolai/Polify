@@ -67,10 +67,10 @@ public class UserProfileService {
             u.getBirthDate(),
             u.getCountry(),
             u.getCity(),
+            u.getRole(),
             u.isVerified(),
             u.getLastActiveAt(),
             u.getCreatedAt()
         );
     }
 }
-

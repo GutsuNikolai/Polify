@@ -216,6 +216,22 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.BAD_REQUEST, ErrorCode.ATTEMPT_VALIDATION, ex.getMessage(), request, List.of());
     }
 
+    @ExceptionHandler(ForbiddenOperationException.class)
+    public org.springframework.http.ResponseEntity<ApiError> handleForbiddenOperation(
+        ForbiddenOperationException ex,
+        HttpServletRequest request
+    ) {
+        return buildError(HttpStatus.FORBIDDEN, ErrorCode.FORBIDDEN, "Forbidden", request, List.of());
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public org.springframework.http.ResponseEntity<ApiError> handleIllegalArgument(
+        IllegalArgumentException ex,
+        HttpServletRequest request
+    ) {
+        return buildError(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_FAILED, ex.getMessage(), request, List.of());
+    }
+
     @ExceptionHandler(Exception.class)
     public org.springframework.http.ResponseEntity<ApiError> handleFallback(Exception ex, HttpServletRequest request) {
         // No stacktrace to client.
