@@ -38,6 +38,15 @@ public class SurveyEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "is_archived", nullable = false)
+    private boolean archived;
+
+    @Column(name = "archived_at")
+    private Instant archivedAt;
+
+    @Column(name = "archived_by_user_id")
+    private Long archivedByUserId;
+
     @OneToMany(mappedBy = "survey", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<QuestionEntity> questions = new LinkedHashSet<>();
 
@@ -95,6 +104,30 @@ public class SurveyEntity {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isArchived() {
+        return archived;
+    }
+
+    public void setArchived(boolean archived) {
+        this.archived = archived;
+    }
+
+    public Instant getArchivedAt() {
+        return archivedAt;
+    }
+
+    public void setArchivedAt(Instant archivedAt) {
+        this.archivedAt = archivedAt;
+    }
+
+    public Long getArchivedByUserId() {
+        return archivedByUserId;
+    }
+
+    public void setArchivedByUserId(Long archivedByUserId) {
+        this.archivedByUserId = archivedByUserId;
     }
 
     public Set<QuestionEntity> getQuestions() {

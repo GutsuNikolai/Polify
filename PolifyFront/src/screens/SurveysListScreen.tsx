@@ -7,6 +7,7 @@ import { SurveyListItem } from "../types/survey";
 import { SurveyCard } from "../components/SurveyCard";
 import { AppStackParamList } from "../navigation/AppNavigator";
 import { useAuthStore } from "../store/authStore";
+import { colors } from "../theme/colors";
 
 type Props = NativeStackScreenProps<AppStackParamList, "Surveys">;
 
@@ -56,7 +57,7 @@ export function SurveysListScreen({ navigation }: Props) {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#93C5FD" />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent2} />}
     >
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
@@ -76,12 +77,11 @@ export function SurveysListScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0B1220" },
+  container: { flex: 1, backgroundColor: colors.bg1 },
   content: { padding: 16, paddingBottom: 28 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#0B1220" },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg1 },
   header: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
-  title: { fontSize: 28, fontWeight: "800", color: "#F8FAFC" },
-  subtitle: { marginTop: 6, color: "#A5B4FC" },
-  signOut: { color: "#93C5FD", fontWeight: "700" },
+  title: { fontSize: 28, fontWeight: "800", color: colors.text },
+  subtitle: { marginTop: 6, color: colors.textDim },
+  signOut: { color: colors.accent2, fontWeight: "700" },
 });
-

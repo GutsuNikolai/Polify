@@ -18,7 +18,8 @@ public class SurveyService {
 
     @Transactional(readOnly = true)
     public List<SurveyListItem> listSurveys() {
-        return surveyRepository.findAll().stream()
+        // Public list: hide archived surveys.
+        return surveyRepository.findAllByArchivedFalse().stream()
             .sorted(Comparator.comparing(SurveyEntity::getId))
             .map(s -> new SurveyListItem(
                 s.getId(),
@@ -71,4 +72,3 @@ public class SurveyService {
         );
     }
 }
-

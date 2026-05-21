@@ -6,6 +6,8 @@ import { getSurvey } from "../api/surveys";
 import { getActiveAttempt, listAttempts, startAttempt } from "../api/attempts";
 import { normalizeError } from "../api/http";
 import { SurveyDetailsResponse } from "../types/survey";
+import { colors } from "../theme/colors";
+import { glass } from "../theme/glass";
 
 type Props = NativeStackScreenProps<AppStackParamList, "SurveyDetails">;
 
@@ -79,6 +81,7 @@ export function SurveyDetailsScreen({ route, navigation }: Props) {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.cover}>
+        <View style={styles.coverSheen} pointerEvents="none" />
         <Text style={styles.coverTitle}>{survey.title}</Text>
         <View style={styles.metaRow}>
           <View style={styles.pill}>
@@ -104,28 +107,37 @@ export function SurveyDetailsScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0B1220" },
+  container: { flex: 1, backgroundColor: colors.bg1 },
   content: { padding: 16, paddingBottom: 28 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#0B1220" },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg1 },
   cover: {
-    backgroundColor: "#0F172A",
+    ...glass.card,
     borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#1F2A44",
     padding: 16,
+    overflow: "hidden",
   },
-  coverTitle: { color: "#F8FAFC", fontSize: 22, fontWeight: "900" },
+  coverSheen: {
+    position: "absolute",
+    top: -70,
+    right: -70,
+    width: 220,
+    height: 220,
+    borderRadius: 999,
+    backgroundColor: colors.glassHighlight,
+    opacity: 0.16,
+  },
+  coverTitle: { color: colors.text, fontSize: 22, fontWeight: "900" },
   metaRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 14 },
   pill: {
-    backgroundColor: "#111A2E",
+    backgroundColor: colors.glassStrong,
     borderWidth: 1,
-    borderColor: "#233152",
+    borderColor: colors.glassBorder,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
   },
-  pillText: { color: "#E2E8F0", fontWeight: "700" },
-  sectionTitle: { marginTop: 18, color: "#A5B4FC", fontWeight: "800" },
-  desc: { marginTop: 8, color: "#CBD5E1", lineHeight: 20 },
+  pillText: { color: colors.text, fontWeight: "700" },
+  sectionTitle: { marginTop: 18, color: colors.textDim, fontWeight: "800" },
+  desc: { marginTop: 8, color: colors.textMuted, lineHeight: 20 },
   actions: { marginTop: 22 },
 });

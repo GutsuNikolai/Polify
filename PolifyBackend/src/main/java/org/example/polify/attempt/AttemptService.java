@@ -42,7 +42,7 @@ public class AttemptService {
         }
 
         Integer cnt = jdbcTemplate.queryForObject(
-            "select count(*) from surveys where id = ?",
+            "select count(*) from surveys where id = ? and is_archived = false",
             Integer.class,
             surveyId
         );
@@ -119,7 +119,7 @@ public class AttemptService {
             throw new AttemptNotAllowedException("Attempt cannot be completed");
         }
 
-        // Create ledger entry (atomic: amount comes from surveys in the same statement).
+        // Create ledger entry (atomic).
         int inserted = jdbcTemplate.update("""
             insert into ledger_entries (attempt_id, user_id, amount_bani, currency, status, created_at)
             select ?, ?, s.reward_amount_bani, 'MDL', 'CREATED', now()

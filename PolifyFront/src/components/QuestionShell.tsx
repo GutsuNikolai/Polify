@@ -1,6 +1,8 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { colors } from "../theme/colors";
+import { glass } from "../theme/glass";
 
 export function QuestionShell({
   title,
@@ -36,34 +38,32 @@ export function QuestionShell({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0B1220" },
+  container: { flex: 1, backgroundColor: colors.bg1 },
   header: {
     paddingTop: 14,
     paddingHorizontal: 18,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#1F2A44",
+    borderBottomColor: colors.line,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
   },
-  progress: { color: "#A5B4FC", fontWeight: "700" },
-  title: { marginTop: 6, color: "#F8FAFC", fontSize: 18, fontWeight: "800", lineHeight: 24 },
+  progress: { color: colors.textDim, fontWeight: "700" },
+  title: { marginTop: 6, color: colors.text, fontSize: 18, fontWeight: "800", lineHeight: 24 },
   exitBtn: {
-    backgroundColor: "#111A2E",
-    borderWidth: 1,
-    borderColor: "#233152",
+    ...glass.card,
+    borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 12,
   },
-  exitText: { color: "#E2E8F0", fontWeight: "700" },
+  exitText: { color: colors.text, fontWeight: "700" },
   body: { flex: 1, padding: 18 },
   footer: {
     paddingHorizontal: 18,
     paddingVertical: 14,
     borderTopWidth: 1,
-    borderTopColor: "#1F2A44",
-    backgroundColor: "#0B1220",
+    borderTopColor: colors.line,
+    backgroundColor: colors.bg1,
   },
 });

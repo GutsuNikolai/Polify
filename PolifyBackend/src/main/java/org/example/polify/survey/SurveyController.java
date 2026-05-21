@@ -15,6 +15,7 @@ import org.example.polify.survey.dto.CreateSurveyRequest;
 import org.example.polify.survey.dto.CreateSurveyResponse;
 import org.example.polify.survey.dto.SurveyDetailsResponse;
 import org.example.polify.survey.dto.SurveyListItem;
+import org.example.polify.survey.dto.SurveyManageListItem;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -72,5 +73,34 @@ public class SurveyController {
     ) {
         long id = adminService.createSurvey(principal.userId(), request);
         return new CreateSurveyResponse(id);
+    }
+
+    @GetMapping("/manage")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "List all surveys (moderator only)", description = "Lists all surveys, including archived ones. MVP management endpoint.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SurveyManageListItem.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(implementation = ApiError.class)))
+    })
+    public List<SurveyManageListItem> listAllForManage(@AuthenticationPrincipal PolifyPrincipal principal) {
+        return adminService.listAll(principal.userId());
+    }
+
+    @PostMapping("/{id}/archive")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Archive survey (moderator only)", description = "Soft-archives a survey. Archived surveys are hidden from public list and cannot be started.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "Archived"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(implementation = ApiError.class))),
+        @ApiResponse(responseCode = "404", description = "Not found", content = @Content(schema = @Schema(implementation = ApiError.class)))
+    })
+    public void archive(
+        @AuthenticationPrincipal PolifyPrincipal principal,
+        @PathVariable("id") long id
+    ) {
+        adminService.archive(principal.userId(), id);
     }
 }

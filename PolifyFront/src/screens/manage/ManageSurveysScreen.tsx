@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export type ManageStackParamList = {
   ManageHome: undefined;
   CreateSurvey: undefined;
+  ManageExisting: undefined;
 };
 
 type Props = NativeStackScreenProps<ManageStackParamList, "ManageHome">;
@@ -67,6 +68,10 @@ export function ManageSurveysScreen({ navigation }: Props) {
       <View style={{ height: 10 }} />
 
       <Button title="Create survey" onPress={() => navigation.navigate("CreateSurvey")} />
+
+      <View style={{ height: 10 }} />
+
+      <Button title="Manage existing surveys" onPress={() => navigation.navigate("ManageExisting")} />
     </View>
   );
 }
@@ -78,4 +83,3 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: "900", color: "#F8FAFC" },
   subtitle: { marginTop: 6, color: "#A5B4FC" },
 });
-

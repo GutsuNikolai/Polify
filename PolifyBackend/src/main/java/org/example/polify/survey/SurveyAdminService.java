@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.example.polify.survey.dto.CreateSurveyRequest;
+import org.example.polify.survey.dto.SurveyManageListItem;
 import org.example.polify.user.UserRoleGuard;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,38 @@ public class SurveyAdminService {
     public SurveyAdminService(SurveyRepository surveyRepository, UserRoleGuard roleGuard) {
         this.surveyRepository = surveyRepository;
         this.roleGuard = roleGuard;
+    }
+
+    @Transactional(readOnly = true)
+    public List<SurveyManageListItem> listAll(long userId) {
+        roleGuard.requireModerator(userId);
+
+        return surveyRepository.findAll().stream()
+            .sorted((a, b) -> Long.compare(a.getId(), b.getId()))
+            .map(s -> new SurveyManageListItem(
+                s.getId(),
+                s.getTitle(),
+                s.isArchived(),
+                s.getArchivedAt()
+            ))
+            .toList();
+    }
+
+    @Transactional
+    public void archive(long userId, long surveyId) {
+        roleGuard.requireModerator(userId);
+
+        SurveyEntity survey = surveyRepository.findById(surveyId)
+            .orElseThrow(() -> new SurveyNotFoundException(surveyId));
+
+        if (survey.isArchived()) {
+            return; // idempotent
+        }
+
+        survey.setArchived(true);
+        survey.setArchivedAt(Instant.now());
+        survey.setArchivedByUserId(userId);
+        surveyRepository.save(survey);
     }
 
     @Transactional
@@ -46,6 +79,9 @@ public class SurveyAdminService {
         survey.setTargetCompletions(request.getTargetCompletions());
         survey.setCreatedByUserId(userId);
         survey.setCreatedAt(now);
+        survey.setArchived(false);
+        survey.setArchivedAt(null);
+        survey.setArchivedByUserId(null);
 
         for (CreateSurveyRequest.CreateQuestion q : qs) {
             QuestionEntity qe = new QuestionEntity();
@@ -121,4 +157,3 @@ public class SurveyAdminService {
         return t.isEmpty() ? null : t;
     }
 }
-

@@ -27,3 +27,9 @@ export type CreateSurveyResponse = {
   surveyId: number;
 };
 
+export type ManageSurveyListItem = {
+  id: number;
+  title: string;
+  archived: boolean;
+  archivedAt?: string | null;
+};

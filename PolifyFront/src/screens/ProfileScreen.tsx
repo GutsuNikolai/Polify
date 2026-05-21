@@ -12,10 +12,13 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { getProfile, updateProfile } from "../api/profile";
+import { listLedgerEntries } from "../api/ledger";
 import { normalizeError } from "../api/http";
 import { UpdateUserProfileRequest, UserProfileResponse } from "../types/profile";
 import { useAuthStore } from "../store/authStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { colors } from "../theme/colors";
+import { glass } from "../theme/glass";
 
 function toDraft(p: UserProfileResponse): UpdateUserProfileRequest {
   return {
@@ -37,16 +40,26 @@ export function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [balanceBani, setBalanceBani] = useState<number | null>(null);
 
   const headerPad = useMemo(() => Math.max(16, 16 + insets.top), [insets.top]);
+
+  const balanceLabel = useMemo(() => {
+    const bani = balanceBani ?? 0;
+    const mdl = bani / 100;
+    return `${mdl.toFixed(2)} MDL`;
+  }, [balanceBani]);
 
   const load = async () => {
     setLoading(true);
     setLoadError(null);
     try {
-      const p = await getProfile();
+      const [p, ledger] = await Promise.all([getProfile(), listLedgerEntries()]);
       setProfile(p);
       setDraft(toDraft(p));
+      // MVP: treat CREATED/CONFIRMED as "earned", ignore FAILED.
+      const sum = ledger.filter((e) => e.status !== "FAILED").reduce((acc, e) => acc + (e.amountBani ?? 0), 0);
+      setBalanceBani(sum);
     } catch (e) {
       const ne = normalizeError(e);
       const msg = ne.kind === "api" ? ne.apiError.message : ne.message;
@@ -109,9 +122,15 @@ export function ProfileScreen() {
           <Text style={styles.title}>Profile</Text>
           <Text style={styles.subtitle}>Edit your public info. Sensitive data is never logged.</Text>
         </View>
-        <Text style={styles.signOut} onPress={() => signOut()}>
-          Sign out
-        </Text>
+        <View style={styles.headerRight}>
+          <View style={styles.balancePill}>
+            <Text style={styles.balanceLabel}>Balance</Text>
+            <Text style={styles.balanceValue}>{balanceLabel}</Text>
+          </View>
+          <Text style={styles.signOut} onPress={() => signOut()}>
+            Sign out
+          </Text>
+        </View>
       </View>
 
       <View style={styles.avatarRow}>
@@ -201,42 +220,52 @@ export function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0B1220" },
+  container: { flex: 1, backgroundColor: colors.bg1 },
   content: { padding: 16, paddingBottom: 28 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#0B1220" },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg1 },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
-  title: { fontSize: 28, fontWeight: "800", color: "#F8FAFC" },
-  subtitle: { marginTop: 6, color: "#A5B4FC" },
-  signOut: { color: "#93C5FD", fontWeight: "700" },
+  title: { fontSize: 28, fontWeight: "800", color: colors.text },
+  subtitle: { marginTop: 6, color: colors.textDim },
+  headerRight: { alignItems: "flex-end", gap: 10 },
+  balancePill: {
+    ...glass.card,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minWidth: 130,
+  },
+  balanceLabel: { color: colors.textDim, fontSize: 12, fontWeight: "800" },
+  balanceValue: { marginTop: 2, color: colors.text, fontSize: 14, fontWeight: "900" },
+  signOut: { color: colors.accent2, fontWeight: "800" },
   avatarRow: {
     flexDirection: "row",
     gap: 14,
-    backgroundColor: "#0F172A",
+    backgroundColor: colors.glassStrong,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: "#1F2A44",
+    borderColor: colors.glassBorder,
     padding: 16,
   },
-  avatar: { width: 64, height: 64, borderRadius: 18, backgroundColor: "#111A2E" },
-  meta: { color: "#E2E8F0", marginTop: 2 },
-  sectionTitle: { marginTop: 18, color: "#A5B4FC", fontWeight: "800" },
-  label: { marginTop: 14, marginBottom: 6, color: "#CBD5E1", fontWeight: "700" },
+  avatar: { width: 64, height: 64, borderRadius: 18, backgroundColor: colors.glassStrong },
+  meta: { color: colors.textMuted, marginTop: 2 },
+  sectionTitle: { marginTop: 18, color: colors.textDim, fontWeight: "800" },
+  label: { marginTop: 14, marginBottom: 6, color: colors.textMuted, fontWeight: "700" },
   input: {
-    backgroundColor: "#0F172A",
-    color: "#E2E8F0",
+    backgroundColor: colors.glassStrong,
+    color: colors.text,
     borderWidth: 1,
-    borderColor: "#1F2A44",
+    borderColor: colors.glassBorder,
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
   selectBox: {
-    backgroundColor: "#0F172A",
+    backgroundColor: colors.glassStrong,
     borderWidth: 1,
-    borderColor: "#1F2A44",
+    borderColor: colors.glassBorder,
     borderRadius: 14,
     overflow: "hidden",
   },
-  picker: { color: "#E2E8F0" },
+  picker: { color: colors.text },
   actions: { marginTop: 20 },
 });

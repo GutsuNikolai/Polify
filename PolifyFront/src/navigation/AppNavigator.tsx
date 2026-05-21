@@ -14,6 +14,8 @@ import { ActivityIndicator, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ManageSurveysScreen, ManageStackParamList } from "../screens/manage/ManageSurveysScreen";
 import { CreateSurveyScreen } from "../screens/manage/CreateSurveyScreen";
+import { ManageExistingSurveysScreen } from "../screens/manage/ManageExistingSurveysScreen";
+import { colors } from "../theme/colors";
 
 export type AppStackParamList = {
   Surveys: undefined;
@@ -34,13 +36,13 @@ function SurveysStackNavigator() {
       <SurveysStack.Screen
         name="SurveyDetails"
         component={SurveyDetailsScreen}
-        options={{ title: "Survey", headerTintColor: "#E2E8F0", headerStyle: { backgroundColor: "#0B1220" } }}
+        options={{ title: "Survey", headerTintColor: colors.text, headerStyle: { backgroundColor: colors.bg1 } }}
       />
       <SurveysStack.Screen name="Attempt" component={AttemptRunnerScreen} options={{ headerShown: false }} />
       <SurveysStack.Screen
         name="AttemptCompleted"
         component={AttemptCompletedScreen}
-        options={{ title: "Completed", headerTintColor: "#E2E8F0", headerStyle: { backgroundColor: "#0B1220" } }}
+        options={{ title: "Completed", headerTintColor: colors.text, headerStyle: { backgroundColor: colors.bg1 } }}
       />
     </SurveysStack.Navigator>
   );
@@ -51,9 +53,14 @@ function ManageStackNavigator() {
     <ManageStack.Navigator>
       <ManageStack.Screen name="ManageHome" component={ManageSurveysScreen} options={{ headerShown: false }} />
       <ManageStack.Screen
+        name="ManageExisting"
+        component={ManageExistingSurveysScreen}
+        options={{ title: "Existing surveys", headerTintColor: colors.text, headerStyle: { backgroundColor: colors.bg1 } }}
+      />
+      <ManageStack.Screen
         name="CreateSurvey"
         component={CreateSurveyScreen}
-        options={{ title: "Create survey", headerTintColor: "#E2E8F0", headerStyle: { backgroundColor: "#0B1220" } }}
+        options={{ title: "Create survey", headerTintColor: colors.text, headerStyle: { backgroundColor: colors.bg1 } }}
       />
     </ManageStack.Navigator>
   );
@@ -76,9 +83,9 @@ export function AppNavigator() {
         <Tabs.Navigator
           screenOptions={({ route }) => ({
             headerShown: false,
-            tabBarStyle: { backgroundColor: "#0B1220", borderTopColor: "#1F2A44" },
-            tabBarActiveTintColor: "#93C5FD",
-            tabBarInactiveTintColor: "#64748B",
+            tabBarStyle: { backgroundColor: colors.bg1, borderTopColor: colors.line },
+            tabBarActiveTintColor: colors.accent2,
+            tabBarInactiveTintColor: "rgba(198, 211, 245, 0.55)",
             tabBarIcon: ({ color, size }) => {
               const name =
                 route.name === "SurveysTab" ? "list" : route.name === "ManageTab" ? "construct" : "person";

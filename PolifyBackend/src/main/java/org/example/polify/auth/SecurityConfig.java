@@ -36,9 +36,14 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(new AntPathRequestMatcher("/auth/**")).permitAll()
-                // Surveys are public for reads, but creation is moderator-only.
                 .requestMatchers(new AntPathRequestMatcher("/surveys/**", HttpMethod.GET.name())).permitAll()
+                // Swagger / OpenAPI should be accessible without auth (dev UX).
+                .requestMatchers(new AntPathRequestMatcher("/v3/api-docs/**")).permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/swagger-ui/**")).permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/swagger-ui.html")).permitAll()
+                // Surveys are public for reads, but creation is moderator-only.
                 .requestMatchers(new AntPathRequestMatcher("/error")).permitAll()
+
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
